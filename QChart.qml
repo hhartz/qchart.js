@@ -84,6 +84,12 @@ Canvas {
       requestPaint();
   }
 
+  onChartDataChanged: {
+      // force creation of a new chart instance with updated data
+      chart = undefined;
+      requestPaint();
+  }
+
 // /////////////////////////////////////////////////////////////////
 // Functions
 // /////////////////////////////////////////////////////////////////
