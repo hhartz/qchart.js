@@ -16,99 +16,118 @@ import QtQuick 2.0
 
 import "QChart.js" as Charts
 
-Canvas {
+Item {
+    id: chartRoot
 
-  id: canvas;
+    property   var chart;
+    property   var chartData;
+    property   int chartType: 0;
+    property  bool chartAnimated: false;
+    property alias chartAnimationEasing: chartAnimator.easing.type;
+    property alias chartAnimationDuration: chartAnimator.duration;
+    property   int chartAnimationProgress: 0;
+    property   var chartOptions: ({})
+    property real customScale: 2
 
-// ///////////////////////////////////////////////////////////////
+    Connections {
+        target: leftWindow
+        onActiveChanged: if (active) {canvas.requestPaint()}
+    }
 
-  property   var chart;
-  property   var chartData;
-  property   int chartType: 0;
-  property  bool chartAnimated: true;
-  property alias chartAnimationEasing: chartAnimator.easing.type;
-  property alias chartAnimationDuration: chartAnimator.duration;
-  property   int chartAnimationProgress: 0;
-  property   var chartOptions: ({})
+    onChartAnimationProgressChanged: {
+        canvas.requestPaint();
+    }
 
-// /////////////////////////////////////////////////////////////////
-// Callbacks
-// /////////////////////////////////////////////////////////////////
+    onChartDataChanged: {
+        // force creation of a new chart instance with updated data
+        chart = undefined;
+        canvas.requestPaint();
+    }
 
-  onPaint: {
-      if(!chart) {
+    function repaint() { canvas.requestPaint() }
 
-          switch(chartType) {
-          case Charts.ChartType.BAR:
-              chart = new Charts.Chart(canvas, canvas.getContext("2d")).Bar(chartData, chartOptions);
-              break;
-          case Charts.ChartType.DOUGHNUT:
-              chart = new Charts.Chart(canvas, canvas.getContext("2d")).Doughnut(chartData, chartOptions);
-              break;
-          case Charts.ChartType.LINE:
-              chart = new Charts.Chart(canvas, canvas.getContext("2d")).Line(chartData, chartOptions);
-              break;
-          case Charts.ChartType.PIE:
-              chart = new Charts.Chart(canvas, canvas.getContext("2d")).Pie(chartData, chartOptions);
-              break;
-          case Charts.ChartType.POLAR:
-              chart = new Charts.Chart(canvas, canvas.getContext("2d")).PolarArea(chartData, chartOptions);
-              break;
-          case Charts.ChartType.RADAR:
-              chart = new Charts.Chart(canvas, canvas.getContext("2d")).Radar(chartData, chartOptions);
-              break;
-          default:
-              console.log('Chart type should be specified.');
-          }
+    onVisibleChanged: if (visible) repaint()
 
-          chart.init();
+    Canvas {
 
-          if (chartAnimated)
-              chartAnimator.start();
-          else
-              chartAnimationProgress = 100;
-      }
+        id: canvas;
 
-      chart.draw(chartAnimationProgress/100);
-  }
+        // ///////////////////////////////////////////////////////////////
 
-  onHeightChanged: {
-    requestPaint();
-  }
+        // /////////////////////////////////////////////////////////////////
+        // Callbacks
+        // /////////////////////////////////////////////////////////////////
 
-  onWidthChanged: {
-    requestPaint();
-  }
+        scale: 1/customScale
+        onScaleChanged: console.log("scale: " + scale)
+        transformOrigin: Item.TopLeft
+        width: parent.width * customScale
+        height: parent.height * customScale
+        Component.onCompleted: {
+            var ctx = getContext("2d");
+            ctx.scale(customScale, customScale)
+        }
 
-  onChartAnimationProgressChanged: {
-      requestPaint();
-  }
+        onPaint: {
+            if(!chart) {
+                switch(chartType) {
+                case Charts.ChartType.BAR:
+                    chart = new Charts.Chart(canvas, canvas.getContext("2d")).Bar(chartData, chartOptions);
+                    break;
+                case Charts.ChartType.DOUGHNUT:
+                    chart = new Charts.Chart(canvas, canvas.getContext("2d")).Doughnut(chartData, chartOptions);
+                    break;
+                case Charts.ChartType.LINE:
+                    chart = new Charts.Chart(canvas, canvas.getContext("2d")).Line(chartData, chartOptions);
+                    break;
+                case Charts.ChartType.PIE:
+                    chart = new Charts.Chart(canvas, canvas.getContext("2d")).Pie(chartData, chartOptions);
+                    break;
+                case Charts.ChartType.POLAR:
+                    chart = new Charts.Chart(canvas, canvas.getContext("2d")).PolarArea(chartData, chartOptions);
+                    break;
+                case Charts.ChartType.RADAR:
+                    chart = new Charts.Chart(canvas, canvas.getContext("2d")).Radar(chartData, chartOptions);
+                    break;
+                default:
+                    console.log('Chart type should be specified.');
+                }
 
-  onChartDataChanged: {
-      // force creation of a new chart instance with updated data
-      chart = undefined;
-      requestPaint();
-  }
+                chart.init();
 
-// /////////////////////////////////////////////////////////////////
-// Functions
-// /////////////////////////////////////////////////////////////////
+                if (chartAnimated)
+                    chartAnimator.start();
+                else
+                    chartAnimationProgress = 100;
+            }
+            chart.draw(chartAnimationProgress/100);
+        }
 
-  function repaint() {
-      chartAnimationProgress = 0;
-      chartAnimator.start();
-  }
+        onHeightChanged: {
+            requestPaint();
+        }
 
-// /////////////////////////////////////////////////////////////////
-// Internals
-// /////////////////////////////////////////////////////////////////
+        onWidthChanged: {
+            requestPaint();
+        }
 
-  PropertyAnimation {
-             id: chartAnimator;
-         target: canvas;
-       property: "chartAnimationProgress";
-             to: 100;
-       duration: 500;
-    easing.type: Easing.InOutElastic;
-  }
+
+        // /////////////////////////////////////////////////////////////////
+        // Functions
+        // /////////////////////////////////////////////////////////////////
+
+
+        // /////////////////////////////////////////////////////////////////
+        // Internals
+        // /////////////////////////////////////////////////////////////////
+
+        PropertyAnimation {
+            id: chartAnimator;
+            target: chartRoot;
+            property: "chartAnimationProgress";
+            to: 100;
+            duration: 500;
+            easing.type: Easing.InOutElastic;
+        }
+    }
 }
